@@ -17,7 +17,7 @@
 
     This work process is similar to the Bambu Lab A1 printer, instead, we use  strain gauge, not eddy sensor.
 
-2.  Nozzle Probe Mode: 
+2. Nozzle Probe Mode: 
 
      Use the strain gauge to sense the nozzle pressure while probing .
 
