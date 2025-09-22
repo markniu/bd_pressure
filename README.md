@@ -1,4 +1,4 @@
-# bd_pressure
+#BD_Pressure
 
 ### Feature:
 
@@ -25,6 +25,6 @@
 
 
 
-GitHub: markniu/bd_pressure
+Store: https://www.pandapi3d.com/product-page/bdpressure
 
-Discord:  3D Printscape
+Discord:  [3D Printscape](https://discord.com/channels/804253067784355863/1403863863367176312)
