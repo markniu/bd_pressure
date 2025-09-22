@@ -7,7 +7,7 @@
 2. Nozzle Probe
 
 
-### How it work?
+### How does it work?
 
 1. PA Mode:
 
