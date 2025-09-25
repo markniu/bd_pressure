@@ -11,7 +11,7 @@ chmod 777 ~/bd_pressure/klipper/install.sh
 
 #### 2. Configure Klipper
 
-Just [include bd_pressure.cfg] in your printer.cfg , and modify the pins to your actual use in the section [probe] and [bdpressure bd_pa]
+Add [include bd_pressure.cfg] into the printer.cfg , and modify the pins to your actual use in the section [probe] and [bdpressure bd_pa]
 
 #### 3. OrcaSlicer:
 
@@ -21,9 +21,7 @@ Just [include bd_pressure.cfg] in your printer.cfg , and modify the pins to your
 ```
 G1 Z30
 G1 X220 Y220
-
 PA_CALIBRATE NOZZLE_TEMP=[first_layer_temperature] MAX_VOLUMETRIC=[filament_max_volumetric_speed] ACC_WALL=[outer_wall_acceleration]
-
 ```
 
 
