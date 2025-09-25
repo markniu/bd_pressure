@@ -1,4 +1,4 @@
-## bd_pressure klipper install
+## klipper 
 
 
 #### 1. Install software module
