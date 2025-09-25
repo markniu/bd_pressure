@@ -2,7 +2,7 @@
 
 ### Features:
 
-1. Automated Pressure Advanced Calibration
+## 1. Automated Pressure Advanced Calibration
 
 2. Nozzle Probe
 
