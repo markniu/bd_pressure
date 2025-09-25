@@ -15,7 +15,7 @@ Add [include bd_pressure.cfg] into the printer.cfg , and modify the pins to your
 
 #### 3. OrcaSlicer:
 
-1. Disable the Pressure advance in the Material settings in the slicer.
+1. Disable the Pressure advance in the Material settings.
 
 2. Add the flowing gcode lines into the start_gcode in the slicer, then it will do pressure advance calibration with your setting and set the PA value before printing
 ```
