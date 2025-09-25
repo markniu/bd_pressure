@@ -1,6 +1,6 @@
 # BD_Pressure
 
-### Feature:
+### Features:
 
 1. Automated Pressure Advanced Calibration
 
