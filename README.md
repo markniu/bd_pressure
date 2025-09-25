@@ -26,5 +26,6 @@
 
 
 Store: https://www.pandapi3d.com/product-page/bdpressure
+video: [test video](https://youtu.be/zLuWcR-ahno)
 
 Discord:  [3D Printscape](https://discord.com/channels/804253067784355863/1403863863367176312)
