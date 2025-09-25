@@ -24,8 +24,13 @@
      It works as a normal switch endstop sensor, so we can just power it and connect the Z- pin on the mainboard. 
 
 
+### Klipper config
+Configurator is [here](https://github.com/markniu/bd_pressure/tree/main/klipper)
 
+
+### others
 Store: https://www.pandapi3d.com/product-page/bdpressure
+
 video: [test video](https://youtu.be/zLuWcR-ahno)
 
 Discord:  [3D Printscape](https://discord.com/channels/804253067784355863/1403863863367176312)
