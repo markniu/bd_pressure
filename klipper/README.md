@@ -17,10 +17,13 @@ Add [include bd_pressure.cfg] into the printer.cfg , and modify the pins to your
 
 1. Disable the Pressure advance in the Material settings.
 
-2. Add the flowing gcode lines into the start_gcode in the slicer, then it will do pressure advance calibration with your setting and set the PA value before printing
+2. Add the following G-code lines into the beginning of the Start_Gcode in the slicer, then it will do pressure advance calibration with your setting and automatically set the right PA value. 
 ```
-G1 Z30
-G1 X10 Y10 ；Modify this to change the calibration position
+G28                    ; Home all the axis
+G1 Z30               ; move to the poop position
+G1 X240 Y240   
+M109 S[first_layer_temperature]      ; wait for extruder temp
+; Pressure advance calibration
 PA_CALIBRATE NOZZLE_TEMP=[first_layer_temperature] MAX_VOLUMETRIC=[filament_max_volumetric_speed] ACC_WALL=[outer_wall_acceleration]
 ```
 
