@@ -36,13 +36,13 @@ chmod 777 ~/bd_pressure/klipper/install.sh
 
 #### 2. Configure Klipper
 
-a) Add [include bd_pressure.cfg] into the printer.cfg , 
+##### Upload the bd_pressure.cfg into the printer config folder and add [include bd_pressure.cfg] into the printer.cfg , 
 ```
 [include bd_pressure.cfg]
 ```
-b) Change the pins to your actual use in the section [probe] 
-
-c) Choose the port(i2c or usb) used in the section [bdpressure bd_pa]
+##### Edit the bd_pressure.cfg : 
+  Change the pins to your actual use in the section [probe] 
+  , Choose the port(i2c or usb) used in the section [bdpressure bd_pa]
 
 #### 3. OrcaSlicer:
 
