@@ -47,9 +47,7 @@ Add [include bd_pressure.cfg] into the printer.cfg , and modify the pins to your
 G28                    ; Home all the axis
 G1 Z30                 ; move to the poop position
 G1 X240 Y240   
-M109 S[first_layer_temperature]      ; wait for extruder temp
-; Pressure advance calibration
-PA_CALIBRATE NOZZLE_TEMP=[first_layer_temperature] MAX_VOLUMETRIC=[filament_max_volumetric_speed] ACC_WALL=[outer_wall_acceleration]
+PA_CALIBRATE NOZZLE_TEMP=[first_layer_temperature] MAX_VOLUMETRIC=[filament_max_volumetric_speed] ACC_WALL=[outer_wall_acceleration]  TRAVEL_SPEED=[travel_speed]  ACC_TO_DECEL_FACTOR=[accel_to_decel_factor]
 ```
 
 
