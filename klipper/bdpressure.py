@@ -169,7 +169,9 @@ class BD_Pressure_Advance:
             self.usb.write('l;'.encode())
             toolhead.dwell(0.4)
             self.usb.write('D;'.encode())
-            toolhead.dwell(0.4)    
+            toolhead.dwell(0.4) 
+            self.usb.write('l;'.encode())
+            toolhead.dwell(0.4)
     
         elif "i2c" == self.port: 
             
