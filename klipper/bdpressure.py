@@ -38,6 +38,8 @@ class BD_Pressure_Advance:
             self.usb_port = config.get("serial")
             baudrate = 500000
             self.usb = serial.Serial(self.usb_port, baudrate,timeout=1)
+            self.usb.reset_input_buffer()
+            self.usb.reset_output_buffer()
         self.PA_data = []    
         self.bd_name = config.get_name().split()[1]     
         self.gcode = self.printer.lookup_object('gcode')
@@ -159,8 +161,16 @@ class BD_Pressure_Advance:
         self.last_state = 1
         response = ""
         if "usb" == self.port:
-            self.usb.write('l;'.encode())
             response += self.usb.readline().decode('ascii').strip()
+            self.usb.reset_input_buffer()
+            self.usb.reset_output_buffer()
+            while self.usb.in_waiting:
+                self.usb.read(self.usb.in_waiting)
+            self.usb.write('l;'.encode())
+            toolhead.dwell(0.4)
+            self.usb.write('D;'.encode())
+            toolhead.dwell(0.4)    
+    
         elif "i2c" == self.port: 
             
             #self.write_register('endstop_thr',6)
@@ -171,7 +181,7 @@ class BD_Pressure_Advance:
             response += self.read_register('_version', 15).decode('utf-8')
         self.gcode.respond_info("cmd_start %s: %s"%(self.port,response)) 
 
-    def pa_data(self,gcmd,str_data):
+    def pa_data_process(self,gcmd,str_data):
         self.gcode.respond_info("%s: %s"%(self.bd_name,str_data))
         if 'R:' in str_data and ',' in str_data:
             R_v=str_data.strip().split('R:')[1].split(',')
@@ -187,9 +197,17 @@ class BD_Pressure_Advance:
                 self.PA_data.append(pa_val)
                 self.gcode.respond_info("The Pressure Value at %f is res:%d,L:%d,R:%d,H:%d,Hav:%d"%(pa_val[0],pa_val[1],pa_val[2],pa_val[3],pa_val[4],pa_val[5])) 
           #  if len(self.PA_data)>=10: 
+            num=len(self.PA_data)
+            flag=1
+            if num>=20:
+                for s_pa in self.PA_data[num-5:]:
+                    if s_pa[4]<10 or s_pa[5]<10:
+                        flag=0
+                        break
+                if flag==1:         
+                    self.cmd_stop(gcmd)
             
-            
-        elif 'stop' in response:
+        elif 'stop' in str_data:
             self.last_state=0
                         
     def cmd_read(self, gcmd):    
@@ -206,11 +224,11 @@ class BD_Pressure_Advance:
                 except:
                     return False
                 if response:
-                    self.pa_data(gcmd,response)
+                    self.pa_data_process(gcmd,response)
                     
         elif "i2c" == self.port:
             response = self.read_register('_measure_data', 32).strip('\0')
-            self.pa_data(gcmd,response)
+            self.pa_data_process(gcmd,response)
         #if self.is_debug == True:
         #    self.gcode.respond_info("bdwidth, port:%s, width:%.3f mm (%d),motion:%d" % (self.port,self.lastFilamentWidthReading,
          #                                        self.raw_width,self.lastMotionReading))          
@@ -254,24 +272,28 @@ class BD_Pressure_Advance:
            # for s_pa in self.PA_data:
            #     if s_pa[5]<0 or s_pa[4]<=0:
             #        self.PA_data.remove(s_pa)
-            min_s = self.PA_data[-1]        
-            for s_pa in self.PA_data[::-1]:
-                if s_pa[4]<=0:
-                    min_s=s_pa
+            min_s = self.PA_data[-1]  
+            min_index = len(self.PA_data)-1
+            for index, s_pa in enumerate(reversed(self.PA_data)):
+                if s_pa[4]<10:
+                    min_index=len(self.PA_data)-1-index
                     break
-            if  min_s==self.PA_data[-1]:
-                for s_pa in self.PA_data[::-1]:
-                    if s_pa[5]<=0:
-                        min_s=s_pa
+            if min_index == len(self.PA_data)-1:
+                for index, s_pa in enumerate(reversed(self.PA_data)):
+                    if s_pa[5]<10:
+                        min_index=len(self.PA_data)-1-index
                         break   
-            if  min_s==self.PA_data[-1]:
+            if  min_index == len(self.PA_data)-1:
                 self.gcode.respond_info("Calc the best Pressure Advance error!")  
                 return
-           # for s_pa in self.PA_data:
-          #      if s_pa[1]<min_s[1]:
-            #        min_s=s_pa
-       # PA_value = min(self.PA_data) 
-            self.gcode.respond_info("Calc the best Pressure Advance: %f, %d"%(min_s[0],min_s[1]))  
+            min_r= self.PA_data[-1]   
+            for s_pa in self.PA_data[min_index:]:
+                if min_r[1]>s_pa[1]:
+                    min_r=s_pa
+            min_s=min_r      
+           # min_s=self.PA_data[min_index]    
+
+            self.gcode.respond_info("Calc the best Pressure Advance: %f, %d %d"%(min_s[0],min_s[1],min_index))  
             set_pa = 'SET_PRESSURE_ADVANCE ADVANCE='+str(min_s[0])
             self.gcode.run_script_from_command(set_pa)
             
