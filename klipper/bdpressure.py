@@ -161,17 +161,17 @@ class BD_Pressure_Advance:
         self.last_state = 1
         response = ""
         if "usb" == self.port:
+            self.usb.write('l;'.encode())
+            toolhead.dwell(0.4)
+            self.usb.write('D;'.encode())
+            toolhead.dwell(0.4) 
             response += self.usb.readline().decode('ascii').strip()
             self.usb.reset_input_buffer()
             self.usb.reset_output_buffer()
             while self.usb.in_waiting:
                 self.usb.read(self.usb.in_waiting)
-            self.usb.write('l;'.encode())
-            toolhead.dwell(0.4)
-            self.usb.write('D;'.encode())
-            toolhead.dwell(0.4) 
-            self.usb.write('l;'.encode())
-            toolhead.dwell(0.4)
+            
+
     
         elif "i2c" == self.port: 
             
