@@ -179,7 +179,7 @@ class BD_Pressure_Advance:
           #  toolhead.dwell(0.2)
             self.write_register('pa_probe_mode',7)
         #    toolhead.dwell(0.4)
-            self.write_register('raw_data_out',1)
+            self.write_register('raw_data_out',0)
             response += self.read_register('_version', 15).decode('utf-8')
         self.gcode.respond_info("cmd_start %s: %s"%(self.port,response)) 
 
