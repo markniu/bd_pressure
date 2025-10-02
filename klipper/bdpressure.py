@@ -57,7 +57,7 @@ class BD_Pressure_Advance:
         response = ""
         if "usb" == self.port:
             self.usb.write('e;'.encode())
-            response += self.usb.readline().decode('ascii').strip()
+           # response += self.usb.readline().decode('ascii').strip()
         elif "i2c" == self.port: 
             response += self.read_register('_version', 15).decode('utf-8')
             #self.write_register('endstop_thr',6)
@@ -69,7 +69,7 @@ class BD_Pressure_Advance:
     def cmd_SET_BDPRESSURE(self, gcmd):
         # Read requested value
         cmd = gcmd.get('COMMAND')
-        self.gcode.respond_info("Send %s to bdpressure:%s"%(cmd,self.bd_name))
+       # self.gcode.respond_info("Send %s to bdpressure:%s"%(cmd,self.bd_name))
         if 'START' in cmd:
             self.cmd_start(gcmd)
         elif 'STOP' in cmd:  
@@ -165,7 +165,7 @@ class BD_Pressure_Advance:
             toolhead.dwell(0.4)
             self.usb.write('D;'.encode())
             toolhead.dwell(0.4) 
-            response += self.usb.readline().decode('ascii').strip()
+           # response += self.usb.readline().decode('ascii').strip()
             self.usb.reset_input_buffer()
             self.usb.reset_output_buffer()
             while self.usb.in_waiting:
@@ -187,7 +187,7 @@ class BD_Pressure_Advance:
         self.gcode.respond_info("%s: %s"%(self.bd_name,str_data))
         if 'R:' in str_data and ',' in str_data:
             R_v=str_data.strip().split('R:')[1].split(',')
-            self.gcode.respond_info("%s %s"%(R_v[3],R_v[4]))
+          #  self.gcode.respond_info("%s %s"%(R_v[3],R_v[4]))
             if len(R_v)==5:                
                 res=int(R_v[0])
                 lk=int(R_v[1])
@@ -197,7 +197,7 @@ class BD_Pressure_Advance:
                 val_step = float(gcmd.get('VALUE'))
                 pa_val = [val_step,res,lk,rk,Hk,Ha]
                 self.PA_data.append(pa_val)
-                self.gcode.respond_info("The Pressure Value at %f is res:%d,L:%d,R:%d,H:%d,Hav:%d"%(pa_val[0],pa_val[1],pa_val[2],pa_val[3],pa_val[4],pa_val[5])) 
+             #   self.gcode.respond_info("The Pressure Value at %f is res:%d,L:%d,R:%d,H:%d,Hav:%d"%(pa_val[0],pa_val[1],pa_val[2],pa_val[3],pa_val[4],pa_val[5])) 
           #  if len(self.PA_data)>=10: 
             num=len(self.PA_data)
             flag=1
@@ -207,7 +207,7 @@ class BD_Pressure_Advance:
                         flag=0
                         break
                 if flag==1:         
-                    self.cmd_stop(gcmd)
+                    self.stop_pa(gcmd)
             
         elif 'stop' in str_data:
             self.last_state=0
@@ -249,7 +249,7 @@ class BD_Pressure_Advance:
         data.insert(0, reg)
         self.i2c.i2c_write(data)
 
-    def cmd_stop(self, gcmd):
+    def stop_pa(self,gcmd):
         toolhead = self.printer.lookup_object('toolhead')
         ##enable y motor
         toolhead.register_lookahead_callback(
@@ -258,13 +258,18 @@ class BD_Pressure_Advance:
         response = ""
         if "usb" == self.port:
             self.usb.write('e;'.encode())
-            response += self.usb.readline().decode('ascii').strip()
+            self.usb.write('D;'.encode())
+           # response += self.usb.readline().decode('ascii').strip()
         elif "i2c" == self.port: 
            # response += self.read_register('_version', 15).decode('utf-8')
             #self.write_register('endstop_thr',6)
             self.write_register('pa_probe_mode',2)
             self.write_register('raw_data_out',0)
+
             
+    def cmd_stop(self, gcmd):
+        
+        self.stop_pa(gcmd)     
         if len(self.PA_data)>=5: 
             self.PA_data.pop(0)
             self.PA_data.pop(1)
