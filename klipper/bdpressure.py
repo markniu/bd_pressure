@@ -312,21 +312,56 @@ class BD_Pressure_Advance:
         self.last_state = 1
         response = ""
         if "usb" == self.port:
-            self.usb.write('l;'.encode())
-            toolhead.dwell(0.4)
             self.usb.reset_input_buffer()
             self.usb.reset_output_buffer()
-            self.usb.write('l;'.encode())
-            toolhead.dwell(0.4)
-            self.usb.write('D;'.encode())
-            toolhead.dwell(0.4) 
-            response += self.usb.readline().decode('utf-8', errors='ignore').strip()
-            
-            while self.usb.in_waiting:
-                self.usb.read(self.usb.in_waiting)
-            
 
-    
+            # Send 'D;' once to enable data output before entering the retry loop
+            self.usb.write('D;'.encode())
+            toolhead.dwell(0.4)
+            
+            #raise self.printer.command_error("Must home before probe")
+            PA_MODE_MAX_RETRIES = 5
+            pa_mode_confirmed = False
+            # Accumulate raw bytes across all attempts
+            raw = b''
+
+            for attempt in range(PA_MODE_MAX_RETRIES):
+                self.usb.write('l;'.encode())
+                toolhead.dwell(0.4)
+
+                # Poll the serial buffer for up to 0.6s; break as soon as 'PA mode' is found
+                deadline = self.reactor.monotonic() + 0.6
+                while self.reactor.monotonic() < deadline:
+                    waiting = self.usb.in_waiting
+                    if waiting:
+                        raw += self.usb.read(waiting)
+                    if b'PA mode' in raw:
+                        break
+                    time.sleep(0.05)
+
+                text = raw.decode('utf-8', errors='ignore').strip()
+                logging.info(
+                    "bdpressure cmd_start: attempt %d/%d, response=%r"
+                    % (attempt + 1, PA_MODE_MAX_RETRIES, text)
+                )
+
+                if 'PA mode' in text:
+                    response += text
+                    pa_mode_confirmed = True
+                    break
+
+            # Flush buffers at exit: whether succeeded or exhausted all retries
+            self.usb.reset_input_buffer()
+            self.usb.reset_output_buffer()
+            if not pa_mode_confirmed:
+                self.gcode.respond_info(
+                    "BD_Pressure WARNING: 'PA mode' not received after %d attempts on %s. "
+                    "Please check the USB connection and sensor firmware."
+                    % (PA_MODE_MAX_RETRIES, self.usb_port)
+                )
+                self.last_state=0
+                return
+
         elif "i2c" == self.port: 
             
             #self.write_register('endstop_thr',6)
