@@ -68,8 +68,10 @@ Full installation guide, wiring diagrams, and Klipper configuration reference:
  
 **[pandapi3d.cn/en/bdpressure/home](https://pandapi3d.cn/en/bdpressure/home)**
 
+<img src="https://cdn.hackaday.io/images/7559601778573237186.jpg" width=600>
 
 <img src="https://cdn.hackaday.io/images/6554431774086421961.jpg" width=600>
+
 <img src="https://cdn.hackaday.io/images/6383141778555677061.jpg" width='600'>
 
 ---
