@@ -16,7 +16,12 @@ The same hardware doubles as a high-precision nozzle probe for bed levelling, ac
   <img src="https://cdn.hackaday.io/images/2558341778555225387.jpg" alt=" " width="600"/>
 </a>
 
-<img src="https://cdn.hackaday.io/images/1561891773995579614.png" width='600'>
+<img src="https://cdn.hackaday.io/images/3838211778555198341.jpg" width='600'>
+<img src="https://static.wixstatic.com/media/0d0edf_eee5984961de44a7bad4c91010afd43b~mv2.jpg/v1/crop/x_10,y_43,w_1744,h_886/fill/w_846,h_430,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/vsV.jpg" width =600>
+
+---
+
+
 
 
 ## Features
@@ -54,12 +59,9 @@ bd_pressure operates as a standard switch-type endstop sensor:
 4. No additional firmware plugin is required for basic probe operation.
 
 ---
+### Hardware
 
-
-<img src="https://static.wixstatic.com/media/0d0edf_1ebb592e9ab04beeacb07abdf56b3e41~mv2.jpg/v1/fill/w_1658,h_1604,al_c,q_85,usm_0.66_1.00_0.01/0d0edf_1ebb592e9ab04beeacb07abdf56b3e41~mv2.jpg" width='600'> <img src="https://static.wixstatic.com/media/0d0edf_eee5984961de44a7bad4c91010afd43b~mv2.jpg/v1/crop/x_10,y_43,w_1744,h_886/fill/w_846,h_430,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/vsV.jpg" width =560>
-
----
-
+<img src="https://cdn.hackaday.io/images/1561891773995579614.png" width='600'>
 ---
  
 ## Installation & Documentation
