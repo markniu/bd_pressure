@@ -84,6 +84,8 @@ Full installation guide, wiring diagrams, and Klipper configuration reference:
 | Discord | [discord.gg/z6ahddnGVU](https://discord.gg/z6ahddnGVU) |
 | Facebook group | [facebook.com/groups/380795976169477](https://www.facebook.com/groups/380795976169477) |
 | Shop | [pandapi3d.com](https://www.pandapi3d.com/product-page/bdpressuree) |
+| thingiverse | [thingiverse](https://www.thingiverse.com/thing:7338066) |
+
 
 ---
  
