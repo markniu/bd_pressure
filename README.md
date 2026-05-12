@@ -11,7 +11,10 @@ The same hardware doubles as a high-precision nozzle probe for bed levelling, ac
  ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
  
 ---
-Video : [https://youtu.be/xD0XgPfmwlg](https://www.youtube.com/watch?v=r0qmRdhEHUw)
+
+<a href="https://www.youtube.com/watch?v=r0qmRdhEHUw">
+  <img src="https://cdn.hackaday.io/images/3696141778554980337.png" alt="点击播放视频" width="600"/>
+</a>
 
 <img src="https://cdn.hackaday.io/images/1561891773995579614.png" width='600'>
 
