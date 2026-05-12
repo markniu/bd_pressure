@@ -60,13 +60,7 @@ bd_pressure operates as a standard switch-type endstop sensor:
 4. No additional firmware plugin is required for basic probe operation.
 
 ---
-### Hardware
 
-
-
-<img src="https://cdn.hackaday.io/images/6383141778555677061.jpg" width='600'>
-
----
  
 ## Installation & Documentation
  
@@ -76,6 +70,8 @@ Full installation guide, wiring diagrams, and Klipper configuration reference:
 
 
 <img src="https://cdn.hackaday.io/images/6554431774086421961.jpg" width=600>
+<img src="https://cdn.hackaday.io/images/6383141778555677061.jpg" width='600'>
+
 ---
  
 ## Community & Support
@@ -84,8 +80,8 @@ Full installation guide, wiring diagrams, and Klipper configuration reference:
 |---|---|
 | Discord | [discord.gg/z6ahddnGVU](https://discord.gg/z6ahddnGVU) |
 | Facebook group | [facebook.com/groups/380795976169477](https://www.facebook.com/groups/380795976169477) |
-| Shop | [pandapi3d.com](https://www.pandapi3d.com/product-page/bdpressuree) |
 | thingiverse | [thingiverse](https://www.thingiverse.com/thing:7338066) |
+| Shop/Support me | [pandapi3d.com](https://www.pandapi3d.com/product-page/bdpressuree) |
 
 
 ---
