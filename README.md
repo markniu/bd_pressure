@@ -62,6 +62,9 @@ bd_pressure operates as a standard switch-type endstop sensor:
 ### Hardware
 
 <img src="https://cdn.hackaday.io/images/1561891773995579614.png" width='600'>
+
+<img src="https://cdn.hackaday.io/images/6383141778555677061.jpg" width='600'>
+
 ---
  
 ## Installation & Documentation
