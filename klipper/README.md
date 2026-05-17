@@ -29,7 +29,7 @@ PA_CALIBRATE NOZZLE_TEMP=[first_layer_temperature] MAX_VOLUMETRIC=[filament_max_
 G28                    ; Home all the axis
 G1 Z30                 ; move to the poop position
 G1 X240 Y240   
-PA_CALIBRATE NOZZLE_TEMP=[first_layer_temperature] MAX_VOLUMETRIC=[filament_max_volumetric_speed] ACC_WALL=[outer_wall_acceleration]  TRAVEL_SPEED=[travel_speed]  MINIMUM_CRUISE_RATIO=0.5 #ACC_TO_DECEL_FACTOR=[accel_to_decel_factor] this klipper specifc variable was replaced in Klipper with MINIMUM_CRUISE_SPEED. and the 0.5 is the default 50% which can be adjusted to suite the printer's capabilities. 
+PA_CALIBRATE NOZZLE_TEMP=[nozzle_temperature] MAX_VOLUMETRIC=[filament_max_volumetric_speed] ACC_WALL=[outer_wall_acceleration]  TRAVEL_SPEED=[travel_speed]  MINIMUM_CRUISE_RATIO=0.5 #ACC_TO_DECEL_FACTOR=[accel_to_decel_factor] this klipper specifc variable was replaced in Klipper with MINIMUM_CRUISE_SPEED. and the 0.5 is the default 50% which can be adjusted to suite the printer's capabilities. 
 ```
 
 #### bd_pressure.cfg considerations:
