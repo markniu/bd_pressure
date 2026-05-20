@@ -78,7 +78,7 @@ Full installation guide, wiring diagrams, and Klipper configuration reference:
 
 <img src="https://cdn.hackaday.io/images/6383141778555677061.jpg" width='600'>
  
- The strain gauge sensor: BF350-3EB  350Ω 5.6*4.6mm 
+ The strain gauge sensor: BF350-1EB  350Ω 5.6*4.6mm 
  
 ---
  
