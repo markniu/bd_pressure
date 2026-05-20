@@ -65,8 +65,12 @@ bd_pressure operates as a standard switch-type endstop sensor:
 ## Installation & Documentation
  
 Full installation guide, wiring diagrams, and Klipper configuration reference:
- 
+
+ Klipper:
 **[pandapi3d.cn/en/bdpressure/home](https://pandapi3d.cn/en/bdpressure/home)**
+
+  RepRapFirmware:
+**[github.com/jaysuk](https://github.com/jaysuk/bd_pressure_dwc_plugin)**
 
 <img src="https://cdn.hackaday.io/images/7559601778573237186.jpg" width=600>
 
