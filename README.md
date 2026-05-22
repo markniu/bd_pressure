@@ -87,11 +87,9 @@ Full installation guide, wiring diagrams, and Klipper configuration reference:
 | Channel | Link |
 |---|---|
 | Discord | [discord.gg/z6ahddnGVU](https://discord.gg/z6ahddnGVU) |
-| Facebook group | [facebook.com/groups/380795976169477](https://www.facebook.com/groups/380795976169477) |
-| thingiverse | [thingiverse](https://www.thingiverse.com/thing:7338066) |
-| Shop/Support me | [pandapi3d.com](https://www.pandapi3d.com/product-page/bdpressuree) |
-
-
+| Facebook group | [facebook.com/groups/380795976169477](https://facebook.com/groups/380795976169477) |
+| Thingiverse | [thingiverse](https://thingiverse.com) |
+| Where to buy | [pandapi3d.com](https://pandapi3d.com) <br> [fabreeko.com](https://fabreeko.com) <br> [west3d.com](https://west3d.com) |
 ---
  
 
