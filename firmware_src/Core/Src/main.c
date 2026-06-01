@@ -195,7 +195,7 @@ void USART2_printf(char *fmt,...)
   uint32_t i,length;
   va_list ap;
   va_start(ap,fmt);
-  vsprintf(usart_txBuff,fmt,ap);
+  vsnprintf(usart_txBuff,USART_TXBUFF_SIZE,fmt,ap);
   va_end(ap);
   length=strlen((const char*)usart_txBuff);
   while((USART2->ISR&0x40)==0);
@@ -568,7 +568,7 @@ int main(void)
 	memset(&R_CMD.version[0],0,sizeof(R_CMD));
 
 	ram_i2c = &R_CMD.version[0];
-	sprintf(R_CMD.version,"pandapi3dv1\n");
+	snprintf((char*)R_CMD.version,sizeof(R_CMD.version),"pandapi3dv1\n");
 	R_CMD.THRHOLD_Z=4;
 	R_CMD.status_clk=ENDSTOP_OSR;
 
