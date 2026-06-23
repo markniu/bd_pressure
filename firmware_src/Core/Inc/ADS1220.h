@@ -1,191 +1,107 @@
-#ifndef	_ADS1220_H_
+#ifndef _ADS1220_H_
 #define _ADS1220_H_
- 
-//#include "sys.h"
- 
+
 extern unsigned char PolarFlag;
- 
-#define RESET      0X03
-#define START      0X08
-#define POWERDOWN  0X02
-#define RDATA      0X10
-#define RREG       0X20
-#define WREG       0X40
- 
-/*-----------输入多路复用器配置 -------------------------
-**这些位配置输入多路复用器。 
-**对于 AINN = AVSS 的设置，PGA 必须禁用 (PGA_BYPASS = 1)，
-**并且仅可使用 增益 1、2 和 4。
--------------------------------------------------------*/
-#define MUX_0  0X00//0000：AINP = AIN0，AINN = AIN1（默认设置）
-#define MUX_1  0X10//0001：AINP = AIN0，AINN = AIN2
-#define MUX_2  0X20//0010：AINP = AIN0，AINN = AIN3
-#define MUX_3  0X30//0011：AINP = AIN1，AINN = AIN2
-#define MUX_4  0X40//0100：AINP = AIN1，AINN = AIN3
-#define MUX_5  0X50//0101：AINP = AIN2，AINN = AIN3
-#define MUX_6  0X60//0110：AINP = AIN1，AINN = AIN0
-#define MUX_7  0X70//0111：AINP = AIN3，AINN = AIN2
-#define MUX_8  0X80//1000：AINP = AIN0，AINN = AVSS
-#define MUX_9  0X90//1001：AINP = AIN1，AINN = AVSS
-#define MUX_10 0XA0//1010：AINP = AIN2，AINN = AVSS
-#define MUX_11 0XB0//1011：AINP = AIN3，AINN = AVSS
-#define MUX_12 0XC0//1100：(V(REFPx) – V(REFNx)) / 4 监视（旁路 PGA）
-#define MUX_13 0XD0//1101：(AVDD – AVSS) / 4 监视（旁路 PGA）
-#define MUX_14 0XE0//1110：AINP 和 AINN 短接至 (AVDD + AVSS) / 2
-//1111：保留
- 
-/*------------增益配置---------------------------------- 
-**这些位用于配置器件增益。 在不使用 PGA 的情况下，
-**可使用增益 1、2 和 4。在这种情况下，通过开关电容结 构获得增益。
-------------------------------------------------------*/
-#define PGA_0  0X00//000：增益 = 1（默认设置）//FS=6.144V
-#define PGA_1  0X02//001：增益 = 2//FS=4.096V
-#define PGA_4  0X04//010：增益 = 4//FS=2.048V
-#define PGA_8  0X06//011：增益 = 8//FS=1.024V
-#define PGA_16 0X08//100：增益 = 16//FS=0.512V
-#define PGA_32 0X0A//101：增益 = 32//FS=0.256V
-#define PGA_64 0X0C//110：增益 = 64//FS=0.256V
-#define PGA_12 0X0E//111：增益 = 128//FS=0.256V
- 
-/*-----------------禁用和旁路内部低噪声 PGA----------------------
-**禁用 PGA 会降低整体功耗，并可将共模电压范围 (VCM) 扩展为 AVSS – 0.1V 至AVDD + 0.1V。 
-**只能针对增益 1、2 和 4 禁用 PGA。 
-无论 PGA_BYPASS 设置如何，都始终针对增益设置 8 至 128 启用 PGA。 
-**0：PGA 已启用（默认设置） 
-**1：PGA 已禁用和旁路
----------------------------------------------------------------------*/
-#define PGA_BYPASS_Enable  0x00//PGA 已启用（默认设置） 
-#define PGA_BYPASS_Disable 0x01//已禁用和旁路
- 
-/*----------------------数据速率----------------------------------
-**这些位控制数据速率设置，取决于所选工作模式。
-**表 18 列出了正常模式、占空比 模式和 Turbo 模式对应的位设置。
------------------------------------------------------------------*/
-#define DR_20SPS   0X00
-#define DR_45SPS   0X20
-#define DR_90SPS   0X40
-#define DR_175SPS  0X60
-#define DR_330SPS  0X80
-#define DR_600SPS  0XA0
-#define DR_1000SPS 0XC0
- 
-/*-----------------工作模式 ---------------------------------------
-**这些位控制器件所处的工作模式。
-00：正常模式（256kHz 调制器时钟，默认设置）
-01：占空比模式（内部占空比 1:4）
-10：Turbo 模式（512kHz 调制器时钟）
-11：保留
-------------------------------------------------------------------*/
-#define MODE_0 0x00	//正常模式（256kHz 调制器时钟，默认设置）
-#define MODE_1 0x08	//占空比模式（内部占空比 1:4）
-#define MODE_2 0x10	//Turbo 模式（512kHz 调制器时钟）
- 
-/*------------------转换模式----------------------------------------
-此位用于为器件设置转换模式。 
-0：单次模式（默认设置）
-1：连续转换模式
--------------------------------------------------------------------*/
-#define ConverMode_0 0x00//单次模式（默认设置）
-#define ConverMode_1 0x04//连续转换模式
- 
-/*--------------------温度传感器模式------------------------------
-此位用于启用内部温度传感器以及将器件置于温度传感器模式下。 
-启用温度传感器模式后，配置寄存器 0 的设置不会产生任何影响，
-器件会使用内部 基准进行测量。 
-0：禁用温度传感器（默认设置） 
-1：启用温度传感器
---------------------------------------------------------------------*/
-#define TS_Disable 0x00//禁用温度传感器（默认设置）
-#define TS_Enable  0x02//启用温度传感器
- 
-/*---------------------烧毁电流源-----------------------------------
-此位用于控制 10μA 烧毁电流源。 
-烧毁电流源可用于检测传感器故障（例如，传感器断路和短路）。 
-0：电流源关断（默认设置） 
-1：电流源接通
--------------------------------------------------------------------*/
-#define BCS_Disable 0x00//电流源关断（默认设置） 
-#define BCS_Enable  0x01//电流源接通
- 
-/*--------------------基准电压选择---------------------------------
-这些位用于选择转换所使用的基准电压源。
-00：选择 2.048V 内部基准电压（默认设置）
-01：使用专用 REFP0 和 REFN0 输入选择的外部基准电压
-10：使用 AIN0/REFP1 和 AIN3/REFN1 输入选择的外部基准电压
-11：用作基准的模拟电源 (AVDD – AVSS)
---------------------------------------------------------------------*/
-#define VREF_0 0X00//选择 2.048V 内部基准电压（默认设置）
-#define VREF_1 0X40//使用专用 REFP0 和 REFN0 输入选择的外部基准电压
-#define VREF_2 0X80//使用 AIN0/REFP1 和 AIN3/REFN1 输入选择的外部基准电压
-#define VREF_3 0XC0//用作基准的模拟电源 (AVDD – AVSS)
- 
-/*----------------------FIR 滤波器配置------------------------------
-这些位用于为内部 FIR 滤波器配置滤波器系数。 
-在正常模式下，这些位仅与 20SPS 设置结合使用；
-在占空比模式下，这些位仅与
-5SPS 设置结合使用。对于所有其他数据速率，这些位均设置为 00。
-00：无 50Hz 或 60Hz 抑制（默认设置）
-01：同时抑制 50Hz 和 60Hz
-10：只抑制 50Hz
-11：只抑制 60Hz
-------------------------------------------------------------------*/
-#define FIR_Mode0  0x00//无 50Hz 或 60Hz 抑制（默认设置）
-#define FIR_Mode1  0x10//同时抑制 50Hz 和 60Hz
-#define FIR_Mode2  0x20//只抑制 50Hz
-#define FIR_Mode3  0x30//只抑制 60Hz
- 
-/*----------------------低侧电源开关配置 --------------------------
-此位用于配置 AIN3/REFN1 和 AVSS 之间连接的低侧开关的行为。 
-0：开关始终处于断开状态（默认设置） 
-1：开关会在发送 START/SYNC 命令时自动闭合，并在发出 POWERDOWN 命令 时自动断开。
-------------------------------------------------------------------*/
-#define PSW_ON  0X00//开关始终处于断开状态（默认设置） 
-#define PSW_OFF 0X08//开关会在发送 START/SYNC 命令时自动闭合，并在发出 POWERDOWN 命令 时自动断开。
- 
-/*---------------------IDAC 电流设置-----------------------------
-这些位用于为 IDAC1 和 IDAC2 激励电流源设置电流。
-----------------------------------------------------------------*/
-#define IDAC_0 0X00  //000：关断（默认设置）
-#define IDAC_1 0X00  //001：10μA
-#define IDAC_2 0X02  //010：50μA
-#define IDAC_3 0X03  //011：100μA
-#define IDAC_4 0X04  //100：250μA
-#define IDAC_5 0X05  //101：500μA
-#define IDAC_6 0X06  //110：1000μA
-#define IDAC_7 0X07  //111：1500μA
- 
-/*------------------------IDAC1 路由配置-------------------------
-这些位用于选择 IDAC1 将路由到的通道。
-111：保留
-----------------------------------------------------------------*/
-#define IDAC1_0 0X00  //000：IDAC1 已禁用（默认设置）
-#define IDAC1_1 0X20  //001：IDAC1 已连接至 AIN0/REFP1
-#define IDAC1_2 0X40  //010：IDAC1 已连接至 AIN1
-#define IDAC1_3 0X60  //011：IDAC1 已连接至 AIN2
-#define IDAC1_4 0X80  //100：IDAC1 已连接至 AIN3/REFN1
-#define IDAC1_5 0XA0  //101：IDAC1 已连接至 REFP0
-#define IDAC1_6 0XC0  //110：IDAC1 已连接至 REFN0
- 
-/*------------------------IDAC2 路由配置-------------------------
-这些位用于选择 IDAC2 将路由到的通道。
-111：保留
-----------------------------------------------------------------*/
-#define IDAC2_0 0X00  //000：IDAC2 已禁用（默认设置）
-#define IDAC2_1 0X04  //001：IDAC2 已连接至 AIN0/REFP1
-#define IDAC2_2 0X08  //010：IDAC2 已连接至 AIN1
-#define IDAC2_3 0X0c  //011：IDAC2 已连接至 AIN2
-#define IDAC2_4 0X10  //100：IDAC2 已连接至 AIN3/REFN1
-#define IDAC2_5 0X14  //101：IDAC2 已连接至 REFP0
-#define IDAC2_6 0X18  //110：IDAC2 已连接至 REFN0
- 
-/*-----------------------DRDY 模式 -----------------------------
-该位用于控制新数据就绪时 DOUT/DRDY 引脚的行为。 
----------------------------------------------------------------*/
-#define DRDY_Mode0 0x00  //0：仅专用 DRDY 引脚用于指示数据何时就绪（默认设置）
-#define DRDY_Mode1 0x02  //1：同时通过 DOUT/DRDY 和 DRDY 指示数据就绪。
- 
-void ADS1220_Init(unsigned char channel,unsigned char speed);
-int GetAD(unsigned char channel,unsigned char continue_mode);
+
+#define RESET      0x03
+#define START      0x08
+#define POWERDOWN  0x02
+#define RDATA      0x10
+#define RREG       0x20
+#define WREG       0x40
+
+#define MUX_0      0x00
+#define MUX_1      0x10
+#define MUX_2      0x20
+#define MUX_3      0x30
+#define MUX_4      0x40
+#define MUX_5      0x50
+#define MUX_6      0x60
+#define MUX_7      0x70
+#define MUX_8      0x80
+#define MUX_9      0x90
+#define MUX_10     0xA0
+#define MUX_11     0xB0
+#define MUX_12     0xC0
+#define MUX_13     0xD0
+#define MUX_14     0xE0
+
+#define PGA_0      0x00
+#define PGA_1      0x02
+#define PGA_4      0x04
+#define PGA_8      0x06
+#define PGA_16     0x08
+#define PGA_32     0x0A
+#define PGA_64     0x0C
+#define PGA_12     0x0E
+
+#define PGA_BYPASS_Enable   0x00
+#define PGA_BYPASS_Disable  0x01
+
+#define DR_20SPS    0x00
+#define DR_45SPS    0x20
+#define DR_90SPS    0x40
+#define DR_175SPS   0x60
+#define DR_330SPS   0x80
+#define DR_600SPS   0xA0
+#define DR_1000SPS  0xC0
+
+#define MODE_0      0x00
+#define MODE_1      0x08
+#define MODE_2      0x10
+
+#define ConverMode_0  0x00
+#define ConverMode_1  0x04
+
+#define TS_Disable  0x00
+#define TS_Enable   0x02
+
+#define BCS_Disable 0x00
+#define BCS_Enable  0x01
+
+#define VREF_0      0x00
+#define VREF_1      0x40
+#define VREF_2      0x80
+#define VREF_3      0xC0
+
+#define FIR_Mode0   0x00
+#define FIR_Mode1   0x10
+#define FIR_Mode2   0x20
+#define FIR_Mode3   0x30
+
+#define PSW_ON      0x00
+#define PSW_OFF     0x08
+
+#define IDAC_0      0x00
+#define IDAC_1      0x01
+#define IDAC_2      0x02
+#define IDAC_3      0x03
+#define IDAC_4      0x04
+#define IDAC_5      0x05
+#define IDAC_6      0x06
+#define IDAC_7      0x07
+
+#define IDAC1_0     0x00
+#define IDAC1_1     0x20
+#define IDAC1_2     0x40
+#define IDAC1_3     0x60
+#define IDAC1_4     0x80
+#define IDAC1_5     0xA0
+#define IDAC1_6     0xC0
+
+#define IDAC2_0     0x00
+#define IDAC2_1     0x04
+#define IDAC2_2     0x08
+#define IDAC2_3     0x0C
+#define IDAC2_4     0x10
+#define IDAC2_5     0x14
+#define IDAC2_6     0x18
+
+#define DRDY_Mode0  0x00
+#define DRDY_Mode1  0x02
+
+void ADS1220_Init(unsigned char channel, unsigned char speed);
+int GetAD(unsigned char channel, unsigned char continue_mode);
 void ADS1220_GPIOInit(void);
- 
+
 #endif

@@ -3,7 +3,7 @@
  
 #include "main.h"
  
-//对应波特率的1个电平持续时间
+
 //(1/9600) = 104us  1/38400 =26
 #define IO_USART_SENDDELAY_TIME 	 26	
  
