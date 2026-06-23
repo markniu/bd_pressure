@@ -88,7 +88,8 @@ Full installation guide, wiring diagrams, and Klipper configuration reference:
 |---|---|
 | Discord | [discord.gg/z6ahddnGVU](https://discord.gg/z6ahddnGVU) |
 | Facebook group | [facebook.com/groups/380795976169477](https://facebook.com/groups/380795976169477) |
-| Thingiverse | [thingiverse](https://thingiverse.com) |
+| Thingiverse | [thingiverse](https://www.thingiverse.com/thing:7338066) |
+| printables  | [printables](https://www.printables.com/model/1760110-a4t-cowling-variations-for-bdpressure-dragon-drago)
 | Where to buy |  [fabreeko.com](https://www.fabreeko.com/collections/recently-added/products/bd-pressure-realtime-pa-adjustment) <br> [west3d.com](https://west3d.com/products/bdpressuree-automatic-pressure-advance-calibration-sensor)  <br> [pandapi3d.com](https://pandapi3d.com) , [淘宝](https://shop62248922.taobao.com/)
 |
 ---
