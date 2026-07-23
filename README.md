@@ -92,5 +92,10 @@ Full installation guide, wiring diagrams, and Klipper configuration reference:
 | printables  | [printables](https://www.printables.com/model/1760110-a4t-cowling-variations-for-bdpressure-dragon-drago)
 | Where to buy | 🇺🇸 [fabreeko.com](https://fabreeko.com) <br> 🇺🇸 [west3d.com](https://west3d.com) <br> 🌏 [pandapi3d.com](https://pandapi3d.com) <br> 🇨🇳 [淘宝](https://shop62248922.taobao.com/) <br> 🇩🇰 [3do.dk](https://3do.dk/12-abl-probe) |
 ---
- 
+
+ ### Does PA need to be calibrated during printing?
+
+Not necessarily. Testing shows that manual calibration under actual printing conditions produces nearly the same optimal PA value as automatic calibration in free air. Back pressure and toolhead movement may add noise, but do not significantly change the optimal PA value.
+
+
 
