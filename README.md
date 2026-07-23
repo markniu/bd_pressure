@@ -95,7 +95,8 @@ Full installation guide, wiring diagrams, and Klipper configuration reference:
 
  ### Does PA need to be calibrated during printing?
 
-Not necessarily. Testing shows that manual calibration under actual printing conditions produces nearly the same optimal PA value as automatic calibration in free air. Back pressure and toolhead movement may add noise, but do not significantly change the optimal PA value.
+Not necessarily. Testing shows that manual calibration under actual printing conditions produces nearly the same optimal PA value as automatic calibration in free air. Back pressure and toolhead movement add noise to the pressure data, but the balance point—and therefore the optimal PA value—remains essentially unchanged.
+
 
 
 
