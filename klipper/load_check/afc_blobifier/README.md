@@ -16,6 +16,7 @@ commands) is described in [../README.md](../README.md).
 | File | Does |
 |---|---|
 | `purge_check.cfg` | `BLOBIFIER_CHECKED` macro and its settings |
+| `purge_until_empty.cfg` | `PURGE_UNTIL_EMPTY`: purge a snapped filament out until there is no more nozzle pressure |
 | `bdwidth_status.py` | Klipper module that exposes bdwidth's motion counter and width to macros (bdwidth's own status only has `filament_detected` and `enabled`) |
 
 ## Install
@@ -106,6 +107,39 @@ between good and empty does; collect values per lane before raising
 The `width` in the result line is the last single reading. The bdwidth
 sometimes reports about twice the real width for one sample (3.4-3.6 mm
 instead of 1.75); the check does not use the width.
+
+## Purging a broken filament out: `PURGE_UNTIL_EMPTY`
+
+[purge_until_empty.cfg](purge_until_empty.cfg) is for a filament that
+snapped inside the PTFE tube. The piece below the break is still in the
+extruder; the macro repeats the Blobifier purge until bd_pressure measures
+no more sustained pressure, so as much of it as possible comes out without
+opening the printer.
+
+```
+PURGE_UNTIL_EMPTY TEMP=240
+```
+
+- Run it with the printer homed, idle or paused (not while printing).
+  It heats to `TEMP` (default: the current target) and needs
+  `[bdpressure_check]` with the load-check firmware.
+- It first unsyncs the loaded AFC lane (`UNSET_LANE_LOADED`). Otherwise AFC
+  keeps feeding that lane with the extruder, the spool side of the break
+  catches up and the purge never ends. `UNSYNC=0` keeps the lane synced.
+- One line per purge, then the result: empty after N purges, or still
+  pressure after `MAX` purges (default 15: the lane is still feeding or the
+  nozzle is blocked).
+- A purge counts as empty when its longest pressure is below `empty_ms`
+  (5000 ms; a full 150 mm purge gives about 17 s, an empty nozzle ~30 ms).
+  A purge where the filament runs out halfway still shows pressure, so the
+  macro always ends with one fully empty purge.
+- `LENGTH=` sets the mm per purge (default: the Blobifier's purge length).
+
+What stays behind: the extruder can only push filament its gears still
+grip. The bit between the gears and the nozzle stays in the hotend; the
+next normal load pushes it out. Afterwards AFC has no lane loaded: eject
+the broken lane, then load as usual (for a paused print: load the lane,
+then `RESUME`).
 
 ## Troubleshooting
 
