@@ -126,6 +126,11 @@ PURGE_UNTIL_EMPTY TEMP=240
 - It first unsyncs the loaded AFC lane (`UNSET_LANE_LOADED`). Otherwise AFC
   keeps feeding that lane with the extruder, the spool side of the break
   catches up and the purge never ends. `UNSYNC=0` keeps the lane synced.
+- bdwidth sits at the start of the tube: after the break it sees no
+  filament while the extruder keeps pushing, and its runout response would
+  pause the printer mid-purge. The macro switches that response off
+  (`SET_FILAMENT_SENSOR ... ENABLE=0`) for the purges and back on after.
+  It does not use bdwidth to decide when to stop, only the nozzle pressure.
 - One line per purge, then the result: empty after N purges, or still
   pressure after `MAX` purges (default 15: the lane is still feeding or the
   nozzle is blocked).
