@@ -9,7 +9,7 @@ It has two parts:
 
 | Part | File |
 |---|---|
-| Firmware extension | `firmware_src/release_hex/BDpressureE_loadcheck_20261007.hex` (source in `firmware_src/Core/Src/main.c`) |
+| Firmware extension | `firmware_src/release_hex/BDpressureE_loadcheck_20261012.hex` (source in `firmware_src/Core/Src/main.c`) |
 | Klipper module | `klipper/bdpressure_check.py`: `BDP_CHECK_START/STOP/QUERY` |
 
 The register protocol is described in [firmware_src/LOAD_CHECK.md](../../firmware_src/LOAD_CHECK.md).
@@ -66,7 +66,7 @@ if the probe below names the chip `STM32C011xx`; the old binary reports
    ~/stm32flash-src/stm32flash -b 115200 /dev/ttyUSB0      # must show Device ID 0x0443 (STM32C011xx)
    mkdir -p ~/bdp_firmware_backups
    ~/stm32flash-src/stm32flash -b 115200 -r ~/bdp_firmware_backups/bdp_backup_$(date +%Y%m%d_%H%M%S).bin -S 0x08000000:32768 /dev/ttyUSB0
-   ~/stm32flash-src/stm32flash -b 115200 -w ~/printer_data/config/BDpressureE_loadcheck_20261007.hex -v /dev/ttyUSB0
+   ~/stm32flash-src/stm32flash -b 115200 -w ~/printer_data/config/BDpressureE_loadcheck_20261012.hex -v /dev/ttyUSB0
    ```
 
    The backup must be exactly 32768 bytes; do not write if it is not. A
@@ -209,7 +209,9 @@ G28                            ; PA_CALIBRATE switches the X/Y drivers
 
 ## Tested
 
-2026-10-07, bd_pressure E, hardware V1.2:
+2026-10-07, bd_pressure E, hardware V1.2, with the first load-check build
+(`BDpressureE_loadcheck_20261007`, before the I2C robustness changes; the
+current build has not been through these tests yet):
 
 | Test | Factory `BDpressureE_20251226` | `BDpressureE_loadcheck_20261007` |
 |---|---|---|
