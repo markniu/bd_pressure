@@ -50,6 +50,27 @@ Vibration gives short runs above the threshold, a sustained extrusion gives
 one long run, so `chk_longest` separates the two. The host should start the
 check while the toolhead is still (after `M400` and a short dwell).
 
+## I2C robustness and watchdog
+
+The load-check build also hardens the I2C slave. With Klipper's software
+I2C on a toolhead board a transfer can be corrupted, and the stock code
+could then stay silent until a power cycle (seen in practice: garbage
+readings during `PA_CALIBRATE`, then only empty ones):
+
+- register numbers past the table are ignored (reads return 0) instead of
+  writing into the RAM after the register table,
+- every write is handled as starting with the register number, also when
+  the STOP of the previous transfer was missed (before, such a write was
+  never armed and the slave held SCL low),
+- `HAL_I2C_ErrorCallback` starts listening again after an I2C error,
+- the main loop resets I2C1 when it has not been listening, or the bus has
+  been busy, for 500 ms,
+- an independent watchdog restarts the sensor when the main loop stops for
+  1 s. Registers written by the host (mode, threshold) are lost then; the
+  host sees a failed reading and sets them again on its next command.
+
+Register layout and behaviour of correct transfers are unchanged.
+
 ## Klipper
 
 `klipper/bdpressure_check.py` adds `BDP_CHECK_START`, `BDP_CHECK_STOP` and
@@ -66,4 +87,5 @@ sensor: bd_pa
 Flashing, installation, a macro example, test results and build notes:
 [klipper/load_check/README.md](../klipper/load_check/README.md).
 A prebuilt firmware is in
-`release_hex/BDpressureE_loadcheck_20261007.hex`.
+`release_hex/BDpressureE_loadcheck_20261012.hex` (with the I2C robustness
+changes above; `..._20261007.hex` is the first build without them).
