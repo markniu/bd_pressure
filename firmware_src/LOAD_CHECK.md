@@ -87,5 +87,4 @@ sensor: bd_pa
 Flashing, installation, a macro example, test results and build notes:
 [klipper/load_check/README.md](../klipper/load_check/README.md).
 A prebuilt firmware is in
-`release_hex/BDpressureE_loadcheck_20261012.hex` (with the I2C robustness
-changes above; `..._20261007.hex` is the first build without them).
+`release_hex/BDpressureE_loadcheck_20261012.hex`.
