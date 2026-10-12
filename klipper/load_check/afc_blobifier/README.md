@@ -98,8 +98,9 @@ Reference values from the test printer (150 mm Blobifier purge):
 | no filament | 0.00 | 31 ms, 1589 ms with a runout pause during the purge |
 | real failed load in a print start (AFC reported lane1 loaded) | 0.00, width 0.000 | 1915 ms, peak 45: caught, print paused in `enforce` |
 
-The ratio depends on the filament: the bdwidth's measuring wheel grips or
-slips differently on different spools, so one `motion_linear_coefficient`
+The ratio depends on the filament: the bdwidth measures motion optically
+with a CCD, and how well it tracks the surface differs from spool to spool
+(colour, gloss, translucency), so one `motion_linear_coefficient`
 does not fit them all. That does not matter for the check, only the gap
 between good and empty does; collect values per lane before raising
 `min_ratio`.
