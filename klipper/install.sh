@@ -38,6 +38,20 @@ if ! grep -q "klippy/extras/bdpressure.py" "${HOME_DIR}/.git/info/exclude"; then
     echo "klippy/extras/bdpressure.py" >> "${HOME_DIR}/.git/info/exclude"
 fi
 
+# Optional load check (needs the load-check firmware, see load_check/README.md).
+# Only active when [bdpressure_check] / [bdwidth_status] are in the config.
+for f in bdpressure_check.py load_check/afc_blobifier/bdwidth_status.py; do
+    name="$(basename "$f")"
+    echo "linking ${name} to klippy."
+    if [ -e "${HOME_DIR}/klippy/extras/${name}" ]; then
+        rm "${HOME_DIR}/klippy/extras/${name}"
+    fi
+    ln -s "${BDDIR}/${f}" "${HOME_DIR}/klippy/extras/${name}"
+    if ! grep -q "klippy/extras/${name}" "${HOME_DIR}/.git/info/exclude"; then
+        echo "klippy/extras/${name}" >> "${HOME_DIR}/.git/info/exclude"
+    fi
+done
+
 
 
 echo ""

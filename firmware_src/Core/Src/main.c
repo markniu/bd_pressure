@@ -4,7 +4,7 @@
   * @author  Mark <markyueyue@gmail.com>
   * @version V1.0
   * @date    2026
-  * @brief   Main program body – firmware entry point and core control loop.
+  * @brief   Main program body ï¿½ firmware entry point and core control loop.
   * @copyright Copyright (c) 2025 pandapi3d.com. All rights reserved.
   * @license This software is licensed under terms that can be found in the LICENSE file
   *          in the root directory of this software component.
@@ -26,6 +26,7 @@
 #include <stdlib.h>
 
 #include "stm32c0xx_hal.h"
+#include "stm32c0xx_ll_iwdg.h"
 
 #include "iousart.h"
 #include "pa.h"
@@ -90,6 +91,16 @@ typedef struct
     unsigned char range;
     unsigned char set_normal; // 0:auto find normal_z ; 1:use current data as the normal_z ; 2: disable auto find normal_z
     unsigned char invert_data;
+    // ---- load-check extension v1: appended so offsets 0-53 stay unchanged.
+    // Hosts that do not know it never read or write these bytes.
+    // All fields are bytes so the compiler adds no padding.
+    unsigned char ext_magic[2];   // 54-55: 0xBD,0x01 = extension present
+    unsigned char chk_ctrl;       // 56: host writes 1 = start check, 0 = stop
+    unsigned char chk_state;      // 57: bit0 check running, bit1 above threshold now
+    unsigned char chk_peak[2];    // 58-59: peak |delta| since start, uint16 LE
+    unsigned char chk_above[2];   // 60-61: ms above threshold since start, uint16 LE
+    unsigned char chk_longest[2]; // 62-63: longest continuous ms above threshold
+    unsigned char chk_delta[2];   // 64-65: current delta, int16 LE
     // other variable
 
 } Receive_D;
@@ -204,6 +215,26 @@ uint8_t *ram_i2c;
 uint8_t offset;
 static uint8_t first_byte_state = 1;
 
+// I2C robustness: the host (Klipper software I2C on a toolhead board) can
+// corrupt a transfer. Before these changes a corrupted transfer could
+// silence the sensor until a power cycle:
+// - a register number past the table made writes land in RAM after R_CMD,
+// - a write that started while first_byte_state was still 0 (STOP of the
+//   previous transfer missed) was never armed, so the slave held SCL low,
+// - nothing re-armed listening after an I2C error, and no watchdog ran.
+#define I2C_REG_SIZE   sizeof(Receive_D)
+#define I2C_STUCK_MS   500   // longest legal transfer at 10 kHz is ~35 ms
+#define IWDG_RELOAD    1000  // 32 kHz LSI / 32 = 1 kHz, so 1 s
+static uint8_t i2c_dummy;    // target for reads/writes past the table
+
+static uint8_t *i2c_reg(uint8_t off)
+{
+    if (off < I2C_REG_SIZE)
+        return &ram_i2c[off];
+    i2c_dummy = 0;
+    return &i2c_dummy;
+}
+
 void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c)
 {
     if (hi2c->Instance==I2C1){
@@ -219,14 +250,14 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 
         if(TransferDirection == I2C_DIRECTION_TRANSMIT)
         {
-            if(first_byte_state)
-            {
-                HAL_I2C_Slave_Seq_Receive_IT(hi2c, &offset, 1, I2C_NEXT_FRAME);
-            }
+            // Every write starts with the register number, also when the
+            // STOP of the previous transfer was missed
+            first_byte_state = 1;
+            HAL_I2C_Slave_Seq_Receive_IT(hi2c, &offset, 1, I2C_NEXT_FRAME);
         }
         else
         {
-            HAL_I2C_Slave_Seq_Transmit_IT(hi2c, &ram_i2c[offset], 1, I2C_NEXT_FRAME);
+            HAL_I2C_Slave_Seq_Transmit_IT(hi2c, i2c_reg(offset), 1, I2C_NEXT_FRAME);
         }
     }
 }
@@ -242,7 +273,7 @@ void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c)
         {
             offset++;
         }
-        HAL_I2C_Slave_Seq_Receive_IT(hi2c, &ram_i2c[offset], 1, I2C_NEXT_FRAME);
+        HAL_I2C_Slave_Seq_Receive_IT(hi2c, i2c_reg(offset), 1, I2C_NEXT_FRAME);
     }
 }
 
@@ -250,8 +281,63 @@ void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
     if (hi2c->Instance==I2C1){
         offset++;
-        HAL_I2C_Slave_Seq_Transmit_IT(hi2c, &ram_i2c[offset], sizeof(Receive_D), I2C_NEXT_FRAME);
+        if (offset < I2C_REG_SIZE)
+            HAL_I2C_Slave_Seq_Transmit_IT(hi2c, &ram_i2c[offset], I2C_REG_SIZE - offset, I2C_NEXT_FRAME);
+        else
+            HAL_I2C_Slave_Seq_Transmit_IT(hi2c, i2c_reg(offset), 1, I2C_NEXT_FRAME);
     }
+}
+
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
+{
+    if (hi2c->Instance==I2C1){
+        // The next transfer starts with a register number again
+        first_byte_state = 1;
+        offset = 0;
+        // HAL keeps listening after most slave errors; if it did not,
+        // listen again here (otherwise i2c_watchdog() resets I2C1)
+        if (HAL_I2C_GetState(hi2c) == HAL_I2C_STATE_READY)
+            HAL_I2C_EnableListen_IT(hi2c);
+    }
+}
+
+// Called from the main loop: if I2C1 is not listening, or the bus has been
+// busy (SCL held by this slave) longer than any legal transfer, reset I2C1
+// and listen again.
+static void MX_I2C1_Init(void);
+static void i2c_watchdog(void)
+{
+    static uint32_t bad_since = 0;
+    uint32_t now = HAL_GetTick();
+    int ok = HAL_I2C_GetState(&hi2c1) == HAL_I2C_STATE_LISTEN
+             && !__HAL_I2C_GET_FLAG(&hi2c1, I2C_FLAG_BUSY);
+    if (ok) {
+        bad_since = 0;
+        return;
+    }
+    if (bad_since == 0) {
+        bad_since = now ? now : 1;
+        return;
+    }
+    if (now - bad_since < I2C_STUCK_MS)
+        return;
+    bad_since = 0;
+    HAL_I2C_DeInit(&hi2c1);
+    MX_I2C1_Init();
+    first_byte_state = 1;
+    offset = 0;
+    HAL_I2C_EnableListen_IT(&hi2c1);
+}
+
+static void iwdg_start(void)
+{
+    LL_IWDG_Enable(IWDG);              // also starts the LSI
+    LL_IWDG_EnableWriteAccess(IWDG);
+    LL_IWDG_SetPrescaler(IWDG, LL_IWDG_PRESCALER_32);
+    LL_IWDG_SetReloadCounter(IWDG, IWDG_RELOAD);
+    while (!LL_IWDG_IsReady(IWDG))
+        ;
+    LL_IWDG_ReloadCounter(IWDG);
 }
 
 
@@ -347,6 +433,92 @@ void find_normal_endstop(unsigned int *r_data,int length,char force)
 
 }
 #define AVT_CN 4
+#define EXT_MAGIC0 0xBD
+#define EXT_MAGIC1 0x01
+
+static uint8_t chk_ctrl_old = 0;
+static uint32_t chk_last_tick = 0, chk_above_ms = 0, chk_run_ms = 0, chk_longest_ms = 0;
+static uint32_t chk_peak = 0;
+
+#define CHK_BLOCKS 16      // baseline = median of 16 block averages
+#define CHK_BLOCK_N 16     // 16 samples per block, 256 samples (~0.2 s) in total
+
+// Baseline for the check: the median of short block averages, so a burst
+// (servo, vibration) just before the start only spoils a few blocks.
+static void chk_set_baseline(void)
+{
+    int16_t avg[CHK_BLOCKS];   // samples are ~-2400..14400, fit int16; keeps the stack small
+    int b, i, j, t, sum, idx = r_index - 1;
+
+    for (b = 0; b < CHK_BLOCKS; b++) {
+        sum = 0;
+        for (i = 0; i < CHK_BLOCK_N; i++)
+            sum += raw_dat[get_ix(idx--)];
+        avg[b] = sum / CHK_BLOCK_N;
+    }
+    for (i = 1; i < CHK_BLOCKS; i++) {      // insertion sort, 16 values
+        t = avg[i];
+        for (j = i - 1; j >= 0 && avg[j] > t; j--)
+            avg[j + 1] = avg[j];
+        avg[j + 1] = t;
+    }
+    normal_z = (avg[CHK_BLOCKS / 2 - 1] + avg[CHK_BLOCKS / 2]) / 2;
+}
+
+static void put_u16(unsigned char *dst, uint32_t v)
+{
+    if (v > 0xffff)
+        v = 0xffff;
+    __disable_irq();
+    dst[0] = v & 0xff;
+    dst[1] = (v >> 8) & 0xff;
+    __enable_irq();
+}
+
+// Load check: while running, the baseline is frozen and the time spent
+// above THRHOLD_Z is measured. Only runs in endstop mode, the endstop
+// output itself behaves exactly as before.
+static void check_update(int delta)
+{
+    uint32_t now = HAL_GetTick(), dt, mag = abs(delta);
+
+    if (R_CMD.chk_ctrl != chk_ctrl_old) {
+        chk_ctrl_old = R_CMD.chk_ctrl;
+        if (R_CMD.chk_ctrl == 1) {
+            chk_set_baseline();
+            chk_above_ms = chk_run_ms = chk_longest_ms = chk_peak = 0;
+            chk_last_tick = now;
+            put_u16(R_CMD.chk_peak, 0);
+            put_u16(R_CMD.chk_above, 0);
+            put_u16(R_CMD.chk_longest, 0);
+            R_CMD.chk_state = 1;
+            return;
+        }
+        R_CMD.chk_state &= ~1;
+    }
+    put_u16(R_CMD.chk_delta, (uint16_t)(int16_t)delta);
+    if (!(R_CMD.chk_state & 1))
+        return;
+
+    dt = now - chk_last_tick;
+    chk_last_tick = now;
+    if (mag > chk_peak)
+        chk_peak = mag;
+    if (mag >= R_CMD.THRHOLD_Z) {
+        R_CMD.chk_state |= 2;
+        chk_above_ms += dt;
+        chk_run_ms += dt;
+        if (chk_run_ms > chk_longest_ms)
+            chk_longest_ms = chk_run_ms;
+    } else {
+        R_CMD.chk_state &= ~2;
+        chk_run_ms = 0;
+    }
+    put_u16(R_CMD.chk_peak, chk_peak);
+    put_u16(R_CMD.chk_above, chk_above_ms);
+    put_u16(R_CMD.chk_longest, chk_longest_ms);
+}
+
 int process_triggered(void)
 {
     int s_avt = 0,i,tmp_cn=0,vibration;
@@ -355,7 +527,7 @@ int process_triggered(void)
     }
     tmp_cn=2500;
 
-    if((tim14_n%tmp_cn)==(tmp_cn-1))
+    if(!(R_CMD.chk_state & 1) && (tim14_n%tmp_cn)==(tmp_cn-1))
 
     {
         tim14_n=0;
@@ -365,6 +537,7 @@ int process_triggered(void)
     for(i=r_index-1;i>r_index-1-AVT_CN;i--)
         s_avt = s_avt+raw_dat[get_ix(i)];
     s_avt = s_avt/AVT_CN;
+    check_update(s_avt-normal_z);
 
     vibration =1;
     if(abs(s_avt-normal_z)>=R_CMD.THRHOLD_Z
@@ -479,6 +652,8 @@ int main(void)
     ram_i2c = &R_CMD.version[0];
     sprintf(R_CMD.version,"pandapi3dv1\n");
     R_CMD.THRHOLD_Z=4;
+    R_CMD.ext_magic[0]=EXT_MAGIC0;
+    R_CMD.ext_magic[1]=EXT_MAGIC1;
     R_CMD.status_clk=ENDSTOP_OSR;
 
     normal_z = 0;
@@ -489,12 +664,17 @@ int main(void)
     }
     ADS1220_Init(4,0xD4);
     R_CMD.invert_data=1;
+    // Restarts the sensor if the main loop stops for 1 s (e.g. the ADC
+    // never signals data ready); fed once per loop below
+    iwdg_start();
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
     while (1)
     {
+        LL_IWDG_ReloadCounter(IWDG);
+        i2c_watchdog();
 
         tempA = GetAD(4,1);
         if(PolarFlag==R_CMD.invert_data)
