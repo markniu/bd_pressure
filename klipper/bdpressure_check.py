@@ -2,7 +2,7 @@
 #
 # Uses the I2C connection the existing [bdpressure <name>] section already
 # set up. Before writing anything it reads the extension marker (bytes
-# 54-55 = 0xBD 0x01). On stock firmware the marker is missing and every
+# 54-55 = 0xBD, version 1 or 2). On stock firmware the marker is missing and every
 # command only reports "not available": nothing is written, because
 # writing past the stock register table would land in the sensor's RAM.
 #
@@ -19,11 +19,16 @@
 #
 # Status (printer.bdpressure_check), updated by the commands above:
 #   available, running, peak, above_ms, longest_ms, delta
+# Extension version 2 also reports diagnostics (BDP_CHECK_QUERY prints them):
+#   reset_cause, i2c_resets, i2c_errors, uptime_s
 
 REG_EXT = 54          # first byte of the extension
 REG_CTRL = 56
-EXT_LEN = 12          # bytes 54-65
-EXT_MAGIC = (0xBD, 0x01)
+EXT_LEN = 18          # bytes 54-71 (version 1 only has 54-65)
+EXT_MAGIC = 0xBD
+EXT_VERSIONS = (1, 2)
+RESET_BITS = ((0x01, 'watchdog'), (0x02, 'reset pin'), (0x04, 'power'),
+              (0x08, 'software'), (0x10, 'option bytes'), (0x20, 'other'))
 
 
 class BDPressureCheck:
@@ -52,7 +57,8 @@ class BDPressureCheck:
             self.status['available'] = False
             return False
         data = bytearray(self.i2c.i2c_read([REG_EXT], EXT_LEN)['response'])
-        if len(data) < EXT_LEN or tuple(data[0:2]) != EXT_MAGIC:
+        if (len(data) < EXT_LEN or data[0] != EXT_MAGIC
+                or data[1] not in EXT_VERSIONS):
             self.status['available'] = False
             return False
         u16 = lambda i: data[i] | (data[i + 1] << 8)
@@ -65,6 +71,13 @@ class BDPressureCheck:
             'longest_ms': u16(8),
             'delta': delta - 0x10000 if delta & 0x8000 else delta,
         })
+        if data[1] >= 2:
+            self.status.update({
+                'reset_cause': data[12],
+                'i2c_resets': data[13],
+                'i2c_errors': u16(14),
+                'uptime_s': u16(16),
+            })
         return True
 
     def _respond(self, gcmd, prefix):
@@ -98,6 +111,14 @@ class BDPressureCheck:
     def cmd_QUERY(self, gcmd):
         self._read()
         self._respond(gcmd, "BDP_CHECK_QUERY")
+        s = self.status
+        if s['available'] and 'uptime_s' in s:
+            cause = ', '.join(n for b, n in RESET_BITS
+                              if s['reset_cause'] & b) or 'none'
+            gcmd.respond_info("BDP_CHECK_QUERY: sensor up %d s, last reset: "
+                              "%s, I2C resets: %d, I2C errors: %d"
+                              % (s['uptime_s'], cause, s['i2c_resets'],
+                                 s['i2c_errors']))
 
     def get_status(self, eventtime):
         return dict(self.status)

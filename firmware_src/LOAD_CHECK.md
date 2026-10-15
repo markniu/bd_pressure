@@ -20,17 +20,27 @@ which switches the X/Y stepper drivers and needs a re-home afterwards.
 
 ## Registers
 
-All values little-endian. Read with a single read starting at 54, 12 bytes.
+All values little-endian. Read with a single read starting at 54, 18 bytes
+(12 bytes on version 1).
 
 | Offset | Size | Name | Access | Meaning |
 |---|---|---|---|---|
-| 54 | 2 | ext_magic | R | `0xBD 0x01`: extension present, version 1 |
+| 54 | 2 | ext_magic | R | `0xBD` + version: 1 = bytes 54-65, 2 = also 66-71 |
 | 56 | 1 | chk_ctrl | R/W | write 1 to start a check, 0 to stop it |
 | 57 | 1 | chk_state | R | bit0: check running, bit1: above threshold now |
 | 58 | 2 | chk_peak | R | largest \|delta\| since start |
 | 60 | 2 | chk_above | R | ms above `THRHOLD_Z` since start (saturates at 65535) |
 | 62 | 2 | chk_longest | R | longest continuous ms above `THRHOLD_Z` |
 | 64 | 2 | chk_delta | R | current delta (signed), also updated outside a check |
+| 66 | 1 | diag_reset | R | cause of the last sensor reset (v2), bits below |
+| 67 | 1 | diag_i2c_resets | R | I2C1 resets by the I2C watchdog since boot (v2, saturates at 255) |
+| 68 | 2 | diag_i2c_errs | R | I2C errors other than NACK since boot (v2) |
+| 70 | 2 | diag_uptime | R | seconds since boot (v2, saturates at 65535) |
+
+`diag_reset` bits: 0x01 watchdog, 0x02 reset pin, 0x04 power, 0x08
+software, 0x10 option bytes, 0x20 other. A normal power-up shows reset pin
+and power. A sensor that answers but resets its I2C often, or restarts by
+itself, shows it here without a power cycle.
 
 `delta` is the same value the endstop trigger uses: the average of the last
 4 samples minus the baseline.
@@ -63,8 +73,10 @@ readings during `PA_CALIBRATE`, then only empty ones):
   the STOP of the previous transfer was missed (before, such a write was
   never armed and the slave held SCL low),
 - `HAL_I2C_ErrorCallback` starts listening again after an I2C error,
-- the main loop resets I2C1 when it has not been listening, or the bus has
-  been busy, for 500 ms,
+- the main loop resets I2C1 when it has not been back in the listen state
+  for 500 ms (a transfer that never ended). The bus BUSY flag is not used:
+  a glitch can leave it set while the slave works, and resetting then made
+  the sensor NACK every ~500 ms (the withdrawn 20261012 build),
 - an independent watchdog restarts the sensor when the main loop stops for
   1 s. Registers written by the host (mode, threshold) are lost then; the
   host sees a failed reading and sets them again on its next command.
@@ -87,4 +99,4 @@ sensor: bd_pa
 Flashing, installation, a macro example, test results and build notes:
 [klipper/load_check/README.md](../klipper/load_check/README.md).
 A prebuilt firmware is in
-`release_hex/BDpressureE_loadcheck_20261012.hex`.
+`release_hex/BDpressureE_loadcheck_20261015.hex`.

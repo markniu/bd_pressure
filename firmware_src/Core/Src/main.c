@@ -101,6 +101,11 @@ typedef struct
     unsigned char chk_above[2];   // 60-61: ms above threshold since start, uint16 LE
     unsigned char chk_longest[2]; // 62-63: longest continuous ms above threshold
     unsigned char chk_delta[2];   // 64-65: current delta, int16 LE
+    // ---- v2: diagnostics
+    unsigned char diag_reset;     // 66: reset cause at boot, see RST_* below
+    unsigned char diag_i2c_resets;// 67: I2C1 resets by i2c_watchdog() since boot
+    unsigned char diag_i2c_errs[2];// 68-69: I2C errors other than NACK since boot
+    unsigned char diag_uptime[2]; // 70-71: seconds since boot (saturates)
     // other variable
 
 } Receive_D;
@@ -226,6 +231,29 @@ static uint8_t first_byte_state = 1;
 #define I2C_STUCK_MS   500   // longest legal transfer at 10 kHz is ~35 ms
 #define IWDG_RELOAD    1000  // 32 kHz LSI / 32 = 1 kHz, so 1 s
 static uint8_t i2c_dummy;    // target for reads/writes past the table
+static uint16_t i2c_errs;    // I2C errors other than NACK, for diag_i2c_errs
+
+// diag_reset bits
+#define RST_IWDG  0x01
+#define RST_PIN   0x02
+#define RST_POWER 0x04
+#define RST_SOFT  0x08
+#define RST_OBL   0x10
+#define RST_OTHER 0x20
+
+static uint8_t read_reset_cause(void)
+{
+    uint32_t f = RCC->CSR2;
+    uint8_t r = 0;
+    if (f & RCC_CSR2_IWDGRSTF) r |= RST_IWDG;
+    if (f & RCC_CSR2_PINRSTF)  r |= RST_PIN;
+    if (f & RCC_CSR2_PWRRSTF)  r |= RST_POWER;
+    if (f & RCC_CSR2_SFTRSTF)  r |= RST_SOFT;
+    if (f & RCC_CSR2_OBLRSTF)  r |= RST_OBL;
+    if (f & (RCC_CSR2_WWDGRSTF | RCC_CSR2_LPWRRSTF)) r |= RST_OTHER;
+    RCC->CSR2 |= RCC_CSR2_RMVF;
+    return r;
+}
 
 static uint8_t *i2c_reg(uint8_t off)
 {
@@ -294,6 +322,9 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
         // The next transfer starts with a register number again
         first_byte_state = 1;
         offset = 0;
+        // A NACK ends every normal read and write, count only real errors
+        if ((hi2c->ErrorCode & ~HAL_I2C_ERROR_AF) && i2c_errs < 0xffff)
+            i2c_errs++;
         // HAL keeps listening after most slave errors; if it did not,
         // listen again here (otherwise i2c_watchdog() resets I2C1)
         if (HAL_I2C_GetState(hi2c) == HAL_I2C_STATE_READY)
@@ -301,16 +332,17 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
     }
 }
 
-// Called from the main loop: if I2C1 is not listening, or the bus has been
-// busy (SCL held by this slave) longer than any legal transfer, reset I2C1
-// and listen again.
+// Called from the main loop: if I2C1 has not been back in the listen state
+// for longer than any legal transfer (a transfer that never ended, e.g. with
+// SCL held by this slave), reset I2C1 and listen again.
+// The BUSY flag is not used: a glitch can set it (START without STOP) while
+// the slave still answers normally, and resetting then caused NACKs.
 static void MX_I2C1_Init(void);
 static void i2c_watchdog(void)
 {
     static uint32_t bad_since = 0;
     uint32_t now = HAL_GetTick();
-    int ok = HAL_I2C_GetState(&hi2c1) == HAL_I2C_STATE_LISTEN
-             && !__HAL_I2C_GET_FLAG(&hi2c1, I2C_FLAG_BUSY);
+    int ok = HAL_I2C_GetState(&hi2c1) == HAL_I2C_STATE_LISTEN;
     if (ok) {
         bad_since = 0;
         return;
@@ -322,6 +354,8 @@ static void i2c_watchdog(void)
     if (now - bad_since < I2C_STUCK_MS)
         return;
     bad_since = 0;
+    if (R_CMD.diag_i2c_resets < 0xff)
+        R_CMD.diag_i2c_resets++;
     HAL_I2C_DeInit(&hi2c1);
     MX_I2C1_Init();
     first_byte_state = 1;
@@ -434,7 +468,7 @@ void find_normal_endstop(unsigned int *r_data,int length,char force)
 }
 #define AVT_CN 4
 #define EXT_MAGIC0 0xBD
-#define EXT_MAGIC1 0x01
+#define EXT_MAGIC1 0x02
 
 static uint8_t chk_ctrl_old = 0;
 static uint32_t chk_last_tick = 0, chk_above_ms = 0, chk_run_ms = 0, chk_longest_ms = 0;
@@ -615,6 +649,7 @@ int main(void)
     unsigned char cmd=0;
     int adctmp;
     int tempA;
+    uint8_t reset_cause;
 
     /* USER CODE END 1 */
 
@@ -624,6 +659,7 @@ int main(void)
     HAL_Init();
 
     /* USER CODE BEGIN Init */
+    reset_cause = read_reset_cause();
 
     /* USER CODE END Init */
 
@@ -654,6 +690,7 @@ int main(void)
     R_CMD.THRHOLD_Z=4;
     R_CMD.ext_magic[0]=EXT_MAGIC0;
     R_CMD.ext_magic[1]=EXT_MAGIC1;
+    R_CMD.diag_reset=reset_cause;
     R_CMD.status_clk=ENDSTOP_OSR;
 
     normal_z = 0;
@@ -675,6 +712,8 @@ int main(void)
     {
         LL_IWDG_ReloadCounter(IWDG);
         i2c_watchdog();
+        put_u16(R_CMD.diag_i2c_errs, i2c_errs);
+        put_u16(R_CMD.diag_uptime, HAL_GetTick() / 1000);
 
         tempA = GetAD(4,1);
         if(PolarFlag==R_CMD.invert_data)

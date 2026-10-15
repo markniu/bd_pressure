@@ -9,7 +9,7 @@ It has two parts:
 
 | Part | File |
 |---|---|
-| Firmware extension | `firmware_src/release_hex/BDpressureE_loadcheck_20261012.hex` (source in `firmware_src/Core/Src/main.c`) |
+| Firmware extension | `firmware_src/release_hex/BDpressureE_loadcheck_20261015.hex` (source in `firmware_src/Core/Src/main.c`) |
 | Klipper module | `klipper/bdpressure_check.py`: `BDP_CHECK_START/STOP/QUERY` |
 
 The register protocol is described in [firmware_src/LOAD_CHECK.md](../../firmware_src/LOAD_CHECK.md).
@@ -66,7 +66,7 @@ if the probe below names the chip `STM32C011xx`; the old binary reports
    ~/stm32flash-src/stm32flash -b 115200 /dev/ttyUSB0      # must show Device ID 0x0443 (STM32C011xx)
    mkdir -p ~/bdp_firmware_backups
    ~/stm32flash-src/stm32flash -b 115200 -r ~/bdp_firmware_backups/bdp_backup_$(date +%Y%m%d_%H%M%S).bin -S 0x08000000:32768 /dev/ttyUSB0
-   ~/stm32flash-src/stm32flash -b 115200 -w ~/printer_data/config/BDpressureE_loadcheck_20261012.hex -v /dev/ttyUSB0
+   ~/stm32flash-src/stm32flash -b 115200 -w ~/printer_data/config/BDpressureE_loadcheck_20261015.hex -v /dev/ttyUSB0
    ```
 
    The backup must be exactly 32768 bytes; do not write if it is not. A
@@ -123,7 +123,7 @@ They act immediately, not in the move queue, so run `M400` first.
 |---|---|
 | `BDP_CHECK_START` | freezes the pressure baseline and starts measuring |
 | `BDP_CHECK_STOP` | stops and prints the result |
-| `BDP_CHECK_QUERY` | prints the current values without stopping |
+| `BDP_CHECK_QUERY` | prints the current values without stopping, plus sensor diagnostics |
 
 The result: `peak` (largest pressure change), `above` (total ms above the
 probe threshold) and `longest` (longest continuous ms above it). Vibration
@@ -131,6 +131,14 @@ gives short runs, a real extrusion one long run, so `longest` is the value
 to judge by. Macros can read the same values from
 `printer.bdpressure_check` (`available, running, peak, above_ms,
 longest_ms, delta`).
+
+On firmware 20261015 and later `BDP_CHECK_QUERY` also prints the sensor's
+uptime, the cause of its last reset, and how often it reset its I2C or saw
+I2C errors since then, e.g. `sensor up 222 s, last reset: reset pin, power,
+I2C resets: 0, I2C errors: 0`. After I2C errors in Klipper, run
+`FIRMWARE_RESTART` (no power cycle) and then `BDP_CHECK_QUERY`: a short
+uptime with "watchdog" means the sensor restarted, I2C resets above 0 mean
+its I2C recovery fired.
 
 ### Quick test
 

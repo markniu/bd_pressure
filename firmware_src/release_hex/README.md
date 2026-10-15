@@ -12,9 +12,11 @@ This process is the same as bdwidth sensor, here is the video of bdwidth: https:
 
 ## Load-check firmware
 
-`BDpressureE_loadcheck_20261012.hex` is the bd_pressure E firmware built from
+`BDpressureE_loadcheck_20261015.hex` is the bd_pressure E firmware built from
 the current source with the optional filament load-check extension, plus I2C
-error recovery and a watchdog (see `../LOAD_CHECK.md`). It
+error recovery, a watchdog and diagnostic registers (see `../LOAD_CHECK.md`).
+It replaces the 20261012 build, whose I2C recovery reset the I2C every 500 ms
+and made Klipper shut down with I2C NACK errors, mostly during homing. It
 behaves like the stock firmware for Klipper's `bdpressure.py` and adds the
 registers described in `../LOAD_CHECK.md`. Flashing from a Raspberry Pi and
 usage: `../../klipper/load_check/README.md`.
