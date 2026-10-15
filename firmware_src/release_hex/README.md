@@ -20,3 +20,9 @@ and made Klipper shut down with I2C NACK errors, mostly during homing. It
 behaves like the stock firmware for Klipper's `bdpressure.py` and adds the
 registers described in `../LOAD_CHECK.md`. Flashing from a Raspberry Pi and
 usage: `../../klipper/load_check/README.md`.
+
+`BDpressureE_loadcheck_20261015b.hex` is the current source: the same, plus
+two-byte values (delta, the check times, diagnostics) are no longer updated
+while the host reads them, so a read can no longer mix bytes of two updates
+(e.g. delta 255 instead of 0). Not tested on hardware yet; 20261015 is the
+tested build.

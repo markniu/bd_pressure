@@ -499,22 +499,29 @@ static void chk_set_baseline(void)
     normal_z = (avg[CHK_BLOCKS / 2 - 1] + avg[CHK_BLOCKS / 2]) / 2;
 }
 
+// Not while the host is reading: a value that changes between its two
+// bytes reads as e.g. 255 instead of 0. Callers write their values on
+// every loop, so a skipped write is done about 1 ms later.
 static void put_u16(unsigned char *dst, uint32_t v)
 {
     if (v > 0xffff)
         v = 0xffff;
     __disable_irq();
-    dst[0] = v & 0xff;
-    dst[1] = (v >> 8) & 0xff;
+    if (hi2c1.State != HAL_I2C_STATE_BUSY_TX_LISTEN) {
+        dst[0] = v & 0xff;
+        dst[1] = (v >> 8) & 0xff;
+    }
     __enable_irq();
 }
+
+static void check_measure(uint32_t now, uint32_t mag);
 
 // Load check: while running, the baseline is frozen and the time spent
 // above THRHOLD_Z is measured. Only runs in endstop mode, the endstop
 // output itself behaves exactly as before.
 static void check_update(int delta)
 {
-    uint32_t now = HAL_GetTick(), dt, mag = abs(delta);
+    uint32_t now = HAL_GetTick(), mag = abs(delta);
 
     if (R_CMD.chk_ctrl != chk_ctrl_old) {
         chk_ctrl_old = R_CMD.chk_ctrl;
@@ -522,17 +529,23 @@ static void check_update(int delta)
             chk_set_baseline();
             chk_above_ms = chk_run_ms = chk_longest_ms = chk_peak = 0;
             chk_last_tick = now;
-            put_u16(R_CMD.chk_peak, 0);
-            put_u16(R_CMD.chk_above, 0);
-            put_u16(R_CMD.chk_longest, 0);
             R_CMD.chk_state = 1;
-            return;
+            return;  // the next call writes the cleared values
         }
         R_CMD.chk_state &= ~1;
     }
     put_u16(R_CMD.chk_delta, (uint16_t)(int16_t)delta);
-    if (!(R_CMD.chk_state & 1))
-        return;
+    if (R_CMD.chk_state & 1)
+        check_measure(now, mag);
+    // Also after the check stopped, in case a write was skipped (put_u16)
+    put_u16(R_CMD.chk_peak, chk_peak);
+    put_u16(R_CMD.chk_above, chk_above_ms);
+    put_u16(R_CMD.chk_longest, chk_longest_ms);
+}
+
+static void check_measure(uint32_t now, uint32_t mag)
+{
+    uint32_t dt;
 
     dt = now - chk_last_tick;
     chk_last_tick = now;
@@ -548,9 +561,6 @@ static void check_update(int delta)
         R_CMD.chk_state &= ~2;
         chk_run_ms = 0;
     }
-    put_u16(R_CMD.chk_peak, chk_peak);
-    put_u16(R_CMD.chk_above, chk_above_ms);
-    put_u16(R_CMD.chk_longest, chk_longest_ms);
 }
 
 int process_triggered(void)
