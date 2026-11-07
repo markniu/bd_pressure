@@ -72,6 +72,14 @@ Full installation guide, wiring diagrams, and Klipper configuration reference:
   RepRapFirmware:
 **[github.com/jaysuk](https://github.com/jaysuk/bd_pressure_dwc_plugin)**
 
+### Filament load check (optional, bd_pressure E)
+
+An optional firmware extension measures nozzle pressure during a purge in
+normal probe mode, so a macro can confirm that new filament reached the
+nozzle after a filament change, without PA mode or re-homing. Includes a
+Klipper module (`BDP_CHECK_START/STOP/QUERY`), a prebuilt firmware and a
+macro example: **[klipper/load_check/README.md](klipper/load_check/README.md)**.
+
 <img src="https://cdn.hackaday.io/images/7559601778573237186.jpg" width=600>
 
 <img src="https://cdn.hackaday.io/images/6554431774086421961.jpg" width=600>

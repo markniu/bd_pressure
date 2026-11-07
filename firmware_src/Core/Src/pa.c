@@ -23,6 +23,7 @@
 
 int threshold = 2;
 extern uint8_t *ram_i2c;
+void USART2_printf(char *fmt, ...);   // defined in main.c
 
 int normal_max = 0;
 int normal_min = 0;
