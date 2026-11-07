@@ -28,7 +28,9 @@ echo ""
 
 echo "linking bdpressure.py to klippy."
 
-if [ -e "${HOME_DIR}/klippy/extras/bdpressure.py" ]; then
+# -L too: a link whose target is gone fails -e, and ln -s would then stop
+# with "File exists" and leave it dangling
+if [ -e "${HOME_DIR}/klippy/extras/bdpressure.py" ] || [ -L "${HOME_DIR}/klippy/extras/bdpressure.py" ]; then
     rm "${HOME_DIR}/klippy/extras/bdpressure.py"
 fi
 ln -s "${BDDIR}/bdpressure.py" "${HOME_DIR}/klippy/extras/bdpressure.py"
@@ -43,7 +45,7 @@ fi
 for f in bdpressure_check.py bdp_guard.py; do
     name="$(basename "$f")"
     echo "linking ${name} to klippy."
-    if [ -e "${HOME_DIR}/klippy/extras/${name}" ]; then
+    if [ -e "${HOME_DIR}/klippy/extras/${name}" ] || [ -L "${HOME_DIR}/klippy/extras/${name}" ]; then
         rm "${HOME_DIR}/klippy/extras/${name}"
     fi
     ln -s "${BDDIR}/${f}" "${HOME_DIR}/klippy/extras/${name}"
