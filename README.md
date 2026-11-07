@@ -79,6 +79,9 @@ normal probe mode, so a macro can confirm that new filament reached the
 nozzle after a filament change, without PA mode or re-homing. Includes a
 Klipper module (`BDP_CHECK_START/STOP/QUERY`), a prebuilt firmware and a
 macro example: **[klipper/load_check/README.md](klipper/load_check/README.md)**.
+The same firmware also supports an optional nozzle collision guard
+(`bdp_guard.py`) that stops the printer when the nozzle hits something during
+homing, QGL or a bed mesh.
 
 <img src="https://cdn.hackaday.io/images/7559601778573237186.jpg" width=600>
 

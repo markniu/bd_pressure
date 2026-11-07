@@ -39,8 +39,8 @@ if ! grep -q "klippy/extras/bdpressure.py" "${HOME_DIR}/.git/info/exclude"; then
 fi
 
 # Optional load check (needs the load-check firmware, see load_check/README.md).
-# Only active when [bdpressure_check] is in the config.
-for f in bdpressure_check.py; do
+# Only active when [bdpressure_check] or [bdp_guard] is in the config.
+for f in bdpressure_check.py bdp_guard.py; do
     name="$(basename "$f")"
     echo "linking ${name} to klippy."
     if [ -e "${HOME_DIR}/klippy/extras/${name}" ]; then
