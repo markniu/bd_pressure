@@ -11,6 +11,7 @@ It has two parts:
 |---|---|
 | Firmware extension | `firmware_src/release_hex/BDpressureE_loadcheck_20261015.hex` (source in `firmware_src/Core/Src/main.c`) |
 | Klipper module | `klipper/bdpressure_check.py`: `BDP_CHECK_START/STOP/QUERY` |
+| Nozzle guard (optional) | `klipper/bdp_guard.py`: `BDP_GUARD_ARM/DISARM/QUERY`, see [4. Nozzle guard](#4-nozzle-guard) |
 
 The register protocol is described in [firmware_src/LOAD_CHECK.md](../../firmware_src/LOAD_CHECK.md).
 
@@ -195,6 +196,101 @@ Pick `min_ms` from real values: run the purge a few times with filament and
 once without, and set it well between the two. Toolhead moves during the
 check (a park move, a wipe) also register as pressure, so keep the toolhead
 still while measuring if you can.
+
+Macros can also read `pa_points` and `pa_distinct` from
+`printer.bdpressure_check`: how many readings the `[bdpressure]` module
+collected in its last `PA_CALIBRATE`, and how many of them differ. A sensor
+that stops answering gives few points and one that hangs repeats the same
+reading, so a macro can refuse to save such a result. Both come from
+`bdpressure.py`, not from the sensor, so they also work on stock firmware.
+
+## 4. Nozzle guard
+
+`bdp_guard.py` uses the same firmware to stop the printer when the nozzle
+hits something during moves where nothing should touch it, such as homing
+X/Y, QGL, a bed mesh or a park move. The firmware keeps the current force
+minus its baseline in register 64 (`chk_delta`) also outside a load check.
+While the guard is armed, the module reads it every 20 ms. In `mode: stop`,
+3 reads in a row at or above the threshold shut Klipper down at once, like
+`M112`. In `mode: log` it only reports what it measured.
+
+`install.sh` links it together with `bdpressure_check.py`. Config:
+
+```
+[bdp_guard]
+sensor: bd_pa          # name after "bdpressure" in [bdpressure bd_pa]
+mode: log              # log: only measure; stop: shut down on a touch
+threshold: 30          # |delta| that counts as a touch
+samples: 3             # reads in a row at or above the threshold
+interval: 0.02         # seconds between reads while armed
+timeout: 600           # disarm by itself after this long in one phase
+```
+
+| Command | Does |
+|---|---|
+| `BDP_GUARD_ARM PHASE=<name> [MODE=log\|stop]` | sets a new zero and starts watching, or switches to a new phase |
+| `BDP_GUARD_DISARM` | stops and reports the phase |
+| `BDP_GUARD_QUERY` | reports without stopping |
+
+Each phase reports its reads, the peak `|delta|`, the longest run at or
+above the threshold and any read errors, in the console and in klippy.log
+(`bdp_guard:`). Macros can read `printer.bdp_guard` (`armed, mode, phase,
+threshold, samples, peak, longest_run, reads, errors, available`).
+
+ARM and DISARM act at once, not in the move queue, so put `M400` before
+them. Only arm the guard around moves where the nozzle must stay free. Contact
+homing, extrusion, purges, nozzle brushes and filament cuts or loads press
+on the nozzle on purpose, and in `mode: stop` they shut the printer down. Wrapper macros:
+
+```
+[gcode_macro _GUARD_ON]
+gcode:
+    {% if 'bdp_guard' in printer %}
+      M400
+      BDP_GUARD_ARM PHASE={params.PHASE|default('armed')} {('MODE=' ~ params.MODE) if 'MODE' in params else ''}
+    {% endif %}
+
+[gcode_macro _GUARD_OFF]
+gcode:
+    {% if 'bdp_guard' in printer %}
+      M400
+      BDP_GUARD_DISARM
+    {% endif %}
+
+[gcode_macro SAFE_QGL]
+gcode:
+    _GUARD_ON PHASE=qgl
+    QUAD_GANTRY_LEVEL
+    _GUARD_OFF
+```
+
+Start with `mode: log` for a few prints and look at the peak per phase
+before switching to `stop`.
+
+Other things the module handles:
+
+- **Fresh zero at every ARM.** Slow pressure changes before the guarded
+  moves do not count. A heating nozzle with TPU drifted +43 and -56 within
+  minutes, faster than the sensor updates its own baseline.
+- **Sensor left in PA mode.** After an emergency stop during
+  `PA_CALIBRATE`, `FIRMWARE_RESTART` does not reset the sensor. ARM then
+  switches it back to probe mode first. While a calibration runs, the
+  guard skips its reads.
+- **One I2C request at a time.** Klipper allows only one I2C request at a
+  time per device; a second one shuts Klipper down. The guard reads from a
+  timer while G-code runs, and `bdpressure.py` writes the probe mode at
+  every homing move. So the guard puts a lock on the sensor's I2C
+  connection, which `bdpressure.py` and `bdpressure_check.py` also go
+  through. This is why `bdpressure_check.py` looks up the connection at
+  every use.
+
+Measured on a Voron 2.4 (bd_pressure E, firmware 20261015, threshold 30):
+
+| Phase | Peak |
+|---|---|
+| Home X/Y, QGL, Z homing, bed mesh, Z check | 1-8 |
+| Nozzle brush scrub | 47 (4 reads in a row above 30, so it runs in `MODE=log`) |
+| Light finger push on the cold nozzle | 41 |
 
 ## Comparing PA calibration
 

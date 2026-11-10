@@ -21,6 +21,11 @@
 #   available, running, peak, above_ms, longest_ms, delta
 # Extension version 2 also reports diagnostics (BDP_CHECK_QUERY prints them):
 #   reset_cause, i2c_resets, i2c_errors, uptime_s
+# Always, read from the [bdpressure] module and not from the sensor:
+#   pa_points, pa_distinct - readings collected in the last PA_CALIBRATE and
+#                  how many of them differ. A sensor that stops answering
+#                  gives few points; one that hangs repeats the same reading,
+#                  so a macro can reject such a calibration.
 
 REG_EXT = 54          # first byte of the extension
 REG_CTRL = 56
@@ -35,7 +40,7 @@ class BDPressureCheck:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.sensor_name = 'bdpressure ' + config.get('sensor', 'bd_pa')
-        self.i2c = None
+        self.sensor = None
         self.status = {'available': False, 'running': False, 'peak': 0,
                        'above_ms': 0, 'longest_ms': 0, 'delta': 0}
         self.printer.register_event_handler('klippy:connect',
@@ -49,8 +54,13 @@ class BDPressureCheck:
                                desc="Read the bd_pressure load check values")
 
     def _handle_connect(self):
-        sensor = self.printer.lookup_object(self.sensor_name)
-        self.i2c = getattr(sensor, 'i2c', None)
+        self.sensor = self.printer.lookup_object(self.sensor_name)
+
+    @property
+    def i2c(self):
+        # Looked up at every use: bdp_guard replaces the sensor's i2c with a
+        # locked wrapper at connect, possibly after this module's connect.
+        return getattr(self.sensor, 'i2c', None)
 
     def _read(self):
         if self.i2c is None:
@@ -121,7 +131,15 @@ class BDPressureCheck:
                                  s['i2c_errors']))
 
     def get_status(self, eventtime):
-        return dict(self.status)
+        status = dict(self.status)
+        # [val, res, lk, rk, Hk, Ha] per reading, see bdpressure.py
+        try:
+            data = list(getattr(self.sensor, 'PA_data', None) or [])
+            status['pa_points'] = len(data)
+            status['pa_distinct'] = len(set(tuple(d[1:]) for d in data))
+        except Exception:
+            status['pa_points'] = status['pa_distinct'] = -1
+        return status
 
 
 def load_config(config):
